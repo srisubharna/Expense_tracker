@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Daily Expenses</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .home a {
+      color: darkblue;
+    }
+    .home a:hover {
+      text-decoration: underline;
+    }
+    .header {
+      display:flex;
+      padding:10px;
+      padding-right:50px;
+      justify-content:space-between;
+      box-shadow:4px 4px 10px black;
+    }
+    .header p {
+      padding-top:15px;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+   <h1>Daily Expenses</h1>
+   <p class="home"><a href="tracker.html">Home</a></p>
+</div>
+
+<input type="date" id="userdate"><br>
+<button onclick="showDailyChart()">Show Chart</button>
+<canvas id="dailyPieChart" width="500" height="250"></canvas>
+
+<script>
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let chartInstance = null;
+
+function showDailyChart() {
+  if (expenses.length === 0) {
+    alert("No expenses to show!");
+    return;
+  }
+
+  let selectedDate = document.getElementById("userdate").value;
+  if (!selectedDate) {
+    selectedDate = new Date().toISOString().split("T")[0];
+  }
+
+  let grouped = {};
+  expenses.forEach(exp => {
+    if (exp.date === selectedDate) {
+      grouped[exp.item] = (grouped[exp.item] || 0) + parseFloat(exp.amount);
+    }
+  });
+
+  if (Object.keys(grouped).length === 0) {
+    alert("No expenses for " + selectedDate + "!");
+    return;
+  }
+
+  const labels = Object.keys(grouped);
+  const data = Object.values(grouped);
+
+  const ctx = document.getElementById("dailyPieChart").getContext("2d");
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Expenses",
+        data: data,
+        backgroundColor: ["lightred","lightblue","yellow","green","purple","orange","pink","teal","cyan","magenta","brown","lime","indigo","violet","gold","silver"]
+
+      }]
+    }
+  });
+}
+</script>
+</body>
+</html>

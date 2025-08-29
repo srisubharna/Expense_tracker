@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Expense Tracker + Chatbot</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f9; }
+    .tracker { display:flex; justify-content:space-between; align-items:center; padding:10px; box-shadow: 4px 4px 10px black; background: white; }
+    .link { display:flex; column-gap:20px; }
+    .l1 a { text-decoration:none; color:darkblue; }
+    .l1 a:hover { text-decoration:underline; }
+
+    /* Floating Button */
+    .fab { width: 60px; height: 60px; border-radius: 50%; background: darkblue; color: white; font-size: 30px; text-align: center; line-height: 60px; position: fixed; bottom: 20px; right: 20px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .fab-options { display: none; position: fixed; bottom: 90px; right: 20px; flex-direction: column; gap: 10px; }
+    .fab-options button { padding: 10px 20px; border: none; border-radius: 8px; background: darkblue; color: white; cursor: pointer; }
+    .form-box { display: none; margin: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+    .form-box input { margin: 5px 0; padding: 8px; width: 95%; }
+
+    /* Chatbox */
+    .chatbox { position: fixed; bottom: 80px; left: 20px; width: 320px; max-height: 400px; border: 1px solid #ccc; border-radius: 8px; background: white; display: none; flex-direction: column; }
+    .chat-header { background: darkblue; color: white; padding: 8px; border-radius: 8px 8px 0 0; font-weight: bold; }
+    .chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; }
+    .chat-input { display: flex; border-top: 1px solid #ddd; }
+    .chat-input input { flex: 1; padding: 8px; border: none; border-radius: 0 0 0 8px; }
+    .chat-input button { padding: 8px 15px; border: none; background: darkblue; color: white; border-radius: 0 0 8px 0; cursor: pointer; }
+    .chat-toggle { position: fixed; bottom: 20px; left: 20px; padding: 15px; border-radius: 50%; background: darkblue; color: white; border: none; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+  </style>
+</head>
+<body>
+  <nav class="tracker">
+    <h1>Expense Tracker</h1>
+    <div class="link">
+      <p class="l1"><a href="">Website Intro</a></p>
+      <p class="l1"><a href="pie.html">Daily Expense</a></p>
+      <p class="l1"><a href="bargraph.html">Monthly Expense</a></p>
+    </div>
+  </nav>
+
+  <!-- Floating Action Button -->
+  <div class="fab" onclick="toggleMenu()">+</div>
+  <div class="fab-options" id="fabOptions">
+    <button onclick="showForm('add')">Add</button>
+    <button onclick="showForm('delete')">Delete</button>
+    <button onclick="showForm('modify')">Modify</button>
+  </div>
+
+  <!-- Add/Delete/Modify Forms -->
+  <div class="form-box" id="addForm">
+    <h3>Add Expense</h3>
+    <input id="entryItem" placeholder="Item"><br>
+    <input type="date" id="entryDate"><br>
+    <input type="number" id="entryAmount" placeholder="Amount"><br>
+    <button onclick="addExpense()">Add</button>
+  </div>
+  <div class="form-box" id="deleteForm">
+    <h3>Delete Expense</h3>
+    <select id="deleteSelect"></select><br>
+    <button onclick="deleteExpense()">Delete</button>
+  </div>
+  <div class="form-box" id="modifyForm">
+    <h3>Modify Expense</h3>
+    <select id="modifySelect" onchange="loadModifyForm()"></select><br>
+    <input type="text" id="modifyItem"><br>
+    <input type="date" id="modifyDate"><br>
+    <input type="number" id="modifyAmount"><br>
+    <button onclick="updateExpense()">Update</button>
+  </div>
+
+  <!-- Chat Toggle Button -->
+  <button class="chat-toggle" onclick="toggleChat()">💬</button>
+  <!-- Chatbox -->
+  <div class="chatbox" id="chatbox">
+    <div class="chat-header">Chatbot</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Type a message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+<script>
+  // ===== Expense Storage =====
+  let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+  function saveExpenses(){ localStorage.setItem("expenses", JSON.stringify(expenses)); }
+
+  function toggleMenu(){ let m=document.getElementById("fabOptions"); m.style.display=(m.style.display==="flex")?"none":"flex"; }
+  function showForm(t){ ["addForm","deleteForm","modifyForm"].forEach(f=>document.getElementById(f).style.display="none"); if(t==="add")document.getElementById("addForm").style.display="block"; if(t==="delete"){refreshSelectMenus();document.getElementById("deleteForm").style.display="block";} if(t==="modify"){refreshSelectMenus();document.getElementById("modifyForm").style.display="block";}}
+  function addExpense(){ let item=document.getElementById("entryItem").value, date=document.getElementById("entryDate").value, amount=document.getElementById("entryAmount").value; if(item&&date&&amount){expenses.push({item, date, amount}); saveExpenses(); alert("Expense added!"); refreshSelectMenus();} else alert("Fill all fields!");}
+  function refreshSelectMenus(){ let del=document.getElementById("deleteSelect"), mod=document.getElementById("modifySelect"); del.innerHTML=""; mod.innerHTML=""; expenses.forEach((e,i)=>{let t=`${e.item} - ${e.date} - ₹${e.amount}`; del.add(new Option(t,i)); mod.add(new Option(t,i));});}
+  function deleteExpense(){ let i=document.getElementById("deleteSelect").value; if(i!==""){expenses.splice(i,1);saveExpenses();refreshSelectMenus();alert("Deleted!");}}
+  function loadModifyForm(){ let i=document.getElementById("modifySelect").value; if(i!==""){let e=expenses[i]; document.getElementById("modifyItem").value=e.item; document.getElementById("modifyDate").value=e.date; document.getElementById("modifyAmount").value=e.amount;}}
+  function updateExpense(){ let i=document.getElementById("modifySelect").value; if(i!==""){expenses[i]={item:document.getElementById("modifyItem").value, date:document.getElementById("modifyDate").value, amount:document.getElementById("modifyAmount").value}; saveExpenses(); refreshSelectMenus(); alert("Updated!");}}
+
+  // ===== Chatbot Logic =====
+  function toggleChat(){ let c=document.getElementById("chatbox"); c.style.display=(c.style.display==="flex")?"none":"flex"; }
+  function getToday(){ return new Date().toISOString().split("T")[0]; }
+  function processLocal(input) {
+  let w = input.trim().split(" "); 
+
+  // Add expense
+  if (input.toLowerCase().startsWith("add expense")) {
+    let item = w[2], amt = w[3], dt = w[4] || getToday();
+    if (!item || isNaN(amt)) return "⚠️ Usage: add expense <item> <amount> [date]";
+    expenses.push({ item, amount: amt, date: dt }); 
+    saveExpenses();
+    return `✅ Added expense: ${item} - ₹${amt} on ${dt}`;
+  }
+
+  // Delete expense
+ if (input.toLowerCase().startsWith("delete expense")) {
+  let item = w[2];
+  if (!item) return "⚠️ Usage: delete expense <item>";
+
+  let i = expenses.findIndex(
+    e => e.item.toLowerCase() === item.toLowerCase()
+  );
+
+  if (i !== -1) {
+    let removed = expenses.splice(i, 1)[0];
+    saveExpenses();
+    return `🗑 Deleted: ${removed.item} - ₹${removed.amount} on ${removed.date}`;
+  } else {
+    return `⚠️ No expense found for '${item}'`;
+  }
+}
+
+
+  // Show all expenses
+  if (input.toLowerCase() === "show expenses") {
+    if (!expenses.length) return "📭 No expenses recorded.";
+    return expenses.map(e => `${e.item} - ₹${e.amount} - ${e.date}`).join("<br>");
+  }
+
+  // Show daily expenses (redirect to pie chart)
+  if (input.toLowerCase() === "show daily expenses") {
+    window.location.href = "pie.html";  
+    return "📊 Redirecting to daily expense pie chart...";
+  }
+
+  // Show monthly expenses (redirect to bar chart)
+  if (input.toLowerCase() === "show monthly expenses") {
+    window.location.href = "bargraph.html";  
+    return "📊 Redirecting to monthly expense bar chart...";
+  }
+
+  return null; // fallback → let backend handle
+}
+
+
+  async function sendMessage(){
+    let input=document.getElementById("chatInput"); let msg=input.value.trim(); if(!msg) return;
+    append("You",msg); input.value="";
+    let localRes=processLocal(msg);
+    if(localRes!==null){ append("Bot",localRes); return; }
+    try{ 
+      let res=await fetch("http://localhost:5000/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+      let data=await res.json();
+      append("Bot",data.reply||"⚠️ No response from server.");
+    } catch(e){ append("Bot","⚠️ Chatbot server offline."); }
+  }
+
+  function append(sender,text){ let box=document.getElementById("chatMessages"); let div=document.createElement("div"); div.innerHTML=`<b>${sender}:</b> ${text}`; box.appendChild(div); box.scrollTop=box.scrollHeight; }
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Monthly Expenses</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .home a {
+      color: darkblue;
+    }
+    .home a:hover {
+      text-decoration: underline;
+    }
+    .header {
+      display:flex;
+      padding:10px;
+      padding-right:50px;
+      justify-content:space-between;
+      box-shadow:4px 4px 10px black;
+    }
+    .header p {
+      padding-top:15px;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+   <h1>Monthly Expenses</h1>
+   <p class="home"><a href="tracker.html">Home</a></p>
+</div>
+
+<select id="yearSelect"></select>
+<button onclick="showMonthlyChart()">Show Chart</button>
+<canvas id="monthlyBarChart" width="600" height="300"></canvas>
+
+<script>
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let chartInstance = null;
+
+// Populate year dropdown
+function loadYears() {
+  let years = new Set();
+  expenses.forEach(exp => {
+    if (exp.date) {
+      let year = exp.date.split("-")[0];
+      years.add(year);
+    }
+  });
+  let select = document.getElementById("yearSelect");
+  select.innerHTML = "";
+  years.forEach(year => {
+    let opt = document.createElement("option");
+    opt.value = year;
+    opt.textContent = year;
+    select.appendChild(opt);
+  });
+}
+
+function showMonthlyChart() {
+  if (expenses.length === 0) {
+    alert("No expenses to show!");
+    return;
+  }
+
+  let selectedYear = document.getElementById("yearSelect").value;
+  if (!selectedYear) {
+    alert("Select a year!");
+    return;
+  }
+
+  // Initialize monthly totals
+  let monthlyTotals = Array(12).fill(0);
+
+  expenses.forEach(exp => {
+    if (exp.date.startsWith(selectedYear)) {
+      let monthIndex = parseInt(exp.date.split("-")[1]) - 1; // 0-based
+      monthlyTotals[monthIndex] += parseFloat(exp.amount);
+    }
+  });
+
+  const monthLabels = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  const ctx = document.getElementById("monthlyBarChart").getContext("2d");
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: monthLabels,
+      datasets: [{
+        label: "Monthly Expenses (₹)",
+        data: monthlyTotals,
+        backgroundColor: [
+          "red","blue","yellow","green","purple","orange","pink",
+          "teal","cyan","magenta","brown","lime"
+        ]
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// Load years when page starts
+loadYears();
+</script>
+</body>
+</html>
